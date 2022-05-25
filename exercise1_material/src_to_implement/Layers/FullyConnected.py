@@ -12,15 +12,16 @@ class FullyConnected(Base.BaseLayer):
 
         self.input_size = input_size
         self.output_size = output_size
+        weights_size = self.input_size + 1
         #initialize the weights
-        self.weights = np.random.uniform(0,1,(self.input_size+1,self.output_size))
+        self.weights = np.random.uniform(0,1,(weights_size,self.output_size))
 
     def forward(self,input_tensor):
         # appending bias "1" column to the input_tensor
         ones= np.ones((input_tensor.shape[0],1))
         input_with_bias = np.append(input_tensor,ones, axis = 1)
         #Linear operation on input
-        output_tensor = np.dot(input_tensor,self.weights)
+        output_tensor = np.dot(input_with_bias,self.weights)
         return output_tensor
 
     def backward(self,error_tensor):
