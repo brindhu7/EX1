@@ -1,12 +1,13 @@
+from Layers import Base
 
-class ReLU:
+class ReLU(Base.BaseLayer):
     def __init__(self):
-        pass
+        super().__init__()
 
     def forward(self,input_tensor):
         input_tensor[input_tensor <= 0] = 0
-        output_tensor = input_tensor
-        return output_tensor
+        return input_tensor
 
     def backward(self,error_tensor):
+        error_tensor[error_tensor <= 0] = 0
         return error_tensor

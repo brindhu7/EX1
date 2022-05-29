@@ -13,4 +13,4 @@ class CrossEntropyLoss:
         return loss_error_matrix
 
     def backward(self,label_tensor):
-        return error_tensor
+        return -label_tensor/(self.prediction_tensor+np.finfo(float).eps)[:, np.newaxis]
