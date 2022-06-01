@@ -14,9 +14,8 @@ class FullyConnected(BaseLayer):
         self.trainable = True
         self.input_size = input_size
         self.output_size = output_size
-        weights_size = self.input_size + 1
         #initialize the weights
-        self.weights = np.random.uniform(0,1,(weights_size,self.output_size))
+        self.weights = np.random.uniform(0,1,(self.input_size + 1 ,self.output_size))
         self._optimizer=None
 
 
