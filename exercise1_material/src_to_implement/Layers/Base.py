@@ -1,6 +1,6 @@
 class BaseLayer:
-    def __init__(self):
-        self.trainable = False
+    def __init__(self, trainable=False):
+        self.trainable = trainable
 
 
 
