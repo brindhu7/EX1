@@ -33,7 +33,7 @@ class NeuralNetwork:
         #creating layers in the list layer
         if layer.trainable:
             layer.optimizer = copy.deepcopy(self.Optimizer)
-            #call initialize method for the layer object
+            #creating initializer objects for the trainable layers
             layer.initialize(self.weights_initializer,self.bias_initializer)
         self.layers.append(layer)
 
