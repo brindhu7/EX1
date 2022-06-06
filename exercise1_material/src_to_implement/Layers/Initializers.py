@@ -4,14 +4,14 @@ class Constant:
         self.x = x
 
     def initialize(self,weights_shape,fan_in,fan_out):
-        init_weight_tensor = np.ones(fan_in,fan_out) * self.x
+        init_weight_tensor = np.ones(weights_shape) * self.x
         return init_weight_tensor
 
 
 class UniformRandom:
 
     def initialize(self,weights_shape,fan_in,fan_out):
-        init_weight_tensor = np.random.uniform(0,1,size= (fan_in,fan_out))
+        init_weight_tensor = np.random.uniform(0,1,size=(weights_shape))
         return init_weight_tensor
 
 class Xavier:
