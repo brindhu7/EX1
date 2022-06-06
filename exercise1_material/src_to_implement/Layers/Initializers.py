@@ -25,5 +25,5 @@ class He:
         sd = np.sqrt(2/fan_in)
         init_weight_tensor = np.random.randn(fan_in,fan_out) * sd
         return init_weight_tensor
-
+#
 
