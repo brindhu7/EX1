@@ -1,8 +1,7 @@
-
 import numpy as np
 from exercise1_material.src_to_implement.Layers.Base import BaseLayer
 import sys
-sys.path.append('C:\\Users\\brind\\PycharmProjects\\EX1\\exercise1_material\\src_to_implement\\Optimization')
+#sys.path.append('C:\\Users\\brind\\PycharmProjects\\EX1\\exercise1_material\\src_to_implement\\Optimization')
 
 
 
@@ -45,7 +44,9 @@ class FullyConnected(BaseLayer):
         error_tensor_Prev = np.dot(self.error_tensor, np.transpose(self.weights))[:, :-1]
 
         if self._optimizer:
+            #get the gradient weights from property gradient weights
             self.gradient__weights = self.gradient_weights
+            #self._optimizer is set to sgd - use weight update method from sgd class
             self.weights = self._optimizer.calculate_update(self.weights, self.gradient__weights)
 
         return error_tensor_Prev
@@ -55,4 +56,9 @@ class FullyConnected(BaseLayer):
         weight_gradients = np.dot(np.transpose(self.input_with_bias), self.error_tensor)
         return weight_gradients
 
+    def initialize(self,weights_initializer,bias_initializer):
+        weights_shape = (self.input_size+1,self.output_size)
+        self.weights = weights_initializer.initialize(weights_shape,self.input_size,self.output_size)
+        #initialize the bias value. Last row of weight matrix is the bias value
+        self.weights[-1] = bias_initializer.initialize(self.output_size,self.input_size,self.output_size)
 
