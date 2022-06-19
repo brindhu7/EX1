@@ -1,6 +1,6 @@
 import numpy as np
 class Constant:
-    def __init__(self,x):
+    def __init__(self,x=0.1):
         self.x = x
 
     def initialize(self,weights_shape,fan_in,fan_out):
