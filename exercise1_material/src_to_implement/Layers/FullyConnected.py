@@ -1,5 +1,5 @@
 import numpy as np
-from Base import BaseLayer
+from Layers.Base import BaseLayer
 import sys
 #sys.path.append('C:\\Users\\brind\\PycharmProjects\\EX1\\exercise1_material\\src_to_implement\\Optimization')
 

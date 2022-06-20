@@ -1,4 +1,4 @@
-from Base import BaseLayer
+from Layers.Base import BaseLayer
 
 class ReLU(BaseLayer):
     def __init__(self):
