@@ -1,5 +1,5 @@
 import numpy as np
-from exercise1_material.src_to_implement.Layers.Base import BaseLayer
+from Layers.Base import BaseLayer
 
 class SoftMax(BaseLayer):
     def __init__(self):

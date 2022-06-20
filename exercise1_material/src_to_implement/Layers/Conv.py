@@ -1,12 +1,10 @@
 import numpy as np
 from Layers.Base import BaseLayer
-from scipy.ndimage.filters import correlate, convolve
-from scipy.signal import correlate as cr
-from scipy.signal import convolve as cv
-
+from scipy.signal import correlate2d, correlate
+from scipy.ndimage import convolve1d, convolve
 
 class Conv(BaseLayer):
-    def __init__(self,stride_shape, convolution_shape,num_kernels):
+    def __init__(self,stride_shape, convolution_shape, num_kernels):
         # calling super constructor - base class
         super().__init__()
         self.stride_shape = stride_shape
@@ -14,124 +12,172 @@ class Conv(BaseLayer):
         self.num_kernels = num_kernels
         # setting inherited member
         self.trainable = True
-        try:
-            self.weights = np.random.randn(num_kernels, convolution_shape[0], convolution_shape[1], convolution_shape[2])
-        except Exception:
-            self.weights = np.random.randn(num_kernels, convolution_shape[0], convolution_shape[1])
-        self.bias = np.zeros(num_kernels)
+        self.weights = np.random.uniform(size=(num_kernels, *convolution_shape))
+        self.bias = np.random.uniform(size=num_kernels)
         self.gradient_weights = None
         self.gradient_bias = None
+        self.input_tensor = None
         self.optimizer = None
 
-    def forward(self, input_tensor):
-        # input_tensor shape: b c y x (D x C x H x W)
-        # self.weights shape: NF x C x HF x HW
-        self.optimizer = input_tensor
-        if len(input_tensor.shape) == 4:
-            if (self.stride_shape[0] != 1 and len(self.stride_shape) == 1)  or \
-                    (self.stride_shape[0] != 1 and self.stride_shape[1] != 1 and  len(self.stride_shape) == 2):
-                if len(input_tensor.shape) == 4:
-                    size_y = int(np.ceil(input_tensor.shape[-1] / self.stride_shape[1]))
-                    size_x = int(np.ceil(input_tensor.shape[-2] / self.stride_shape[0]))
-                    input = np.zeros(
-                        [input_tensor.shape[0], input_tensor.shape[1], self.stride_shape[0] * size_x,
-                         self.stride_shape[1] * size_y])
-                    input[0:input_tensor.shape[0], 0:input_tensor.shape[1], 0:input_tensor.shape[2], 0:input_tensor.shape[3]] = input_tensor
-                    output_tensor = []
-                    for i in range(self.num_kernels):
-                        temp_x = []
-                        for j in range(size_y):
-                            temp_y = []
-                            for k in range(size_x):
-                                left = j*self.stride_shape[1]
-                                right = left + self.stride_shape[1]
-                                top = k*self.stride_shape[0]
-                                bottom = top + self.stride_shape[0]
-                                temp_y.append(np.sum(np.sum(np.sum(np.array(correlate(input[:, :, top:bottom, left:right], self.weights[i, :, :, :][np.newaxis, :, :, :], mode='constant') + self.bias[i]), 3), 2), 1))
-                                #temp_y.append(correlate(input[:, :, top:bottom, left:right], self.weights[i, :, :, :][np.newaxis, :, :, :],
-                                #                 mode='constant') + self.bias[i])
-                            temp_x.append(temp_y)
-                        output_tensor.append(temp_x)
-                    output_tensor = np.transpose(np.array(output_tensor), [3, 0, 2, 1])
-                    print("Hi")
-            else:
-                output_tensor = np.zeros([input_tensor.shape[0], self.num_kernels, input_tensor.shape[2], input_tensor.shape[3]])
-                for i in range(self.num_kernels):
-                    temp = correlate(input_tensor, self.weights[i, :, :, :][np.newaxis, :, :, :], mode='constant') + self.bias[i]
-                    if len(temp.shape) == 4:
-                        temp = np.sum(temp, 1)
-                    output_tensor[:, i, :, :] = temp
-        else:
-            if (self.stride_shape[0] != 1) :
-                size_y = int(np.ceil(input_tensor.shape[-1] / self.stride_shape[0]))
-                input = np.zeros(
-                    [input_tensor.shape[0], input_tensor.shape[1], self.stride_shape[0] * size_y])
-                input[0:input_tensor.shape[0], 0:input_tensor.shape[1], 0:input_tensor.shape[2]] = input_tensor
-                output_tensor = []
-                for i in range(self.num_kernels):
-                    temp_x = []
-                    for j in range(size_y):
-                        left = j * self.stride_shape[0]
-                        right = left + self.stride_shape[0]
-                        temp_x.append(np.sum(np.sum(np.array(correlate(input[:, :, left:right], self.weights[i, :, :][np.newaxis, :, :],
-                                      mode='constant') + self.bias[i]), 2), 1))
-                    output_tensor.append(temp_x)
-                output_tensor = np.transpose(np.array(output_tensor), [2, 0, 1])
-                print("Hi")
-            else:
-                output_tensor = np.zeros(
-                    [input_tensor.shape[0], self.num_kernels, input_tensor.shape[1], input_tensor.shape[2]])
-                for i in range(self.num_kernels):
-                    output_tensor[:, i, :, :] = correlate(input_tensor, self.weights[i, :, :][np.newaxis, :, :],
-                                                          mode='constant') + self.bias[i]
+    def forward_2D(self, input_tensor):
+        batch_size = input_tensor.shape[0]
+        width = input_tensor.shape[3]
+        height = input_tensor.shape[2]
+        stride_y = self.stride_shape[1]
+        stride_x = self.stride_shape[0]
+        num_channels = self.convolution_shape[0]
 
-        self.out = output_tensor
+        output_tensor = np.zeros((batch_size, self.num_kernels, int(np.ceil(height/stride_x)), int(np.ceil(width/stride_y))))
+
+        for n_b in range(batch_size):
+            for n_k in range(self.num_kernels):
+                result_per_ch = []
+                for n_c in range(num_channels):
+                    result_per_ch.append(correlate2d(input_tensor[n_b][n_c], self.weights[n_k][n_c], mode='same', boundary='fill'))
+                temp = np.sum(np.array(result_per_ch), axis=0)
+                temp = temp[::stride_x, ::stride_y] + self.bias[n_k]
+                output_tensor[n_b][n_k] = temp
+        return output_tensor
+
+    def forward_1D(self, input_tensor):
+        batch_size = input_tensor.shape[0]
+        width = input_tensor.shape[-1]
+        stride_y = self.stride_shape[0]
+        num_channels = self.convolution_shape[0]
+
+        output_tensor = np.zeros((batch_size, self.num_kernels, int(np.ceil(width / stride_y))))
+
+        for n_b in range(batch_size):
+            for n_k in range(self.num_kernels):
+                result = []
+                for n_c in range(num_channels):
+                    result.append(correlate(input_tensor[n_b][n_c], self.weights[n_k][n_c], mode='same'))
+                temp = np.sum(np.array(result), axis=0)
+                output_tensor[n_b][n_k] = temp[::stride_y] + self.bias[n_k]
+        return output_tensor
+
+    def forward(self, input_tensor):
+        self.input_tensor = input_tensor
+        if len(input_tensor.shape) == 4:
+            output_tensor = self.forward_2D(input_tensor)
+        else:
+            output_tensor = self.forward_1D(input_tensor)
         return output_tensor
 
     def backward(self, error_tensor):
+        if len(error_tensor.shape)==4:
+            error_tensor_out = self.backward_2D(error_tensor)
+        else:
+            error_tensor_out = self.backward_1D(error_tensor)
+
+        return error_tensor_out
+
+    def backward_2D(self, error_tensor):
+        batch_size = self.input_tensor.shape[0]
+        width = self.input_tensor.shape[3]
+        height = self.input_tensor.shape[2]
+        stride_y = self.stride_shape[1]
+        stride_x = self.stride_shape[0]
+        num_channels = self.convolution_shape[0]
+
+        error_tensor_rshpd = np.zeros((batch_size, self.num_kernels, *self.input_tensor.shape[2:]))
+        error_tensor_rshpd[:, :, ::stride_x, ::stride_y] = error_tensor
+
+        Kernel_rshpd = np.zeros((num_channels, self.num_kernels, *self.convolution_shape[1:]))
+
+        for n_c in range(num_channels):
+            for n_k in range(self.num_kernels):
+                Kernel_rshpd[n_c][n_k] = self.weights[n_k][n_c]
+
+        error_tensor_out = np.zeros((batch_size, num_channels, height, width))
+
+        for n_b in range(batch_size):
+            for n_c in range(num_channels):
+                result = []
+                for n_k in range(self.num_kernels):
+                    result.append(convolve(error_tensor_rshpd[n_b][n_k], Kernel_rshpd[n_c][n_k], mode='constant', cval=0))
+                error_tensor_out[n_b][n_c] = np.sum(np.array(result), axis=0)
+
+        self.gradient_bias = np.zeros(self.bias.shape)
+        for n_k in range(self.num_kernels):
+            self.gradient_bias[n_k] = np.sum(error_tensor[:, n_k, :, :])
+
+
+        delta_weights = np.zeros(self.weights.shape)
+        conv_shape = np.array(self.convolution_shape)-1
+        _,lx,ly = np.int32(np.floor(conv_shape/2))
+        _,rx,ry = np.int32(np.ceil(conv_shape/2))
+        padded_input_tensor = np.pad(self.input_tensor, ((0,0),(0,0),(lx,rx),(ly,ry)))
+
+        for n_b in range(batch_size):
+            for n_k in range(self.num_kernels):
+                result = []
+                for n_c in range(num_channels):
+                    result.append(correlate2d(padded_input_tensor[n_b][n_c],error_tensor_rshpd[n_b][n_k],mode='valid'))
+                delta_weights[n_k] += np.array(result)
+        self.gradient_weights = delta_weights
 
         if self.optimizer is not None:
-            if len(self.optimizer.shape)==4:
-                #error_tensor_out = np.zeros([error_tensor.shape[0], error_tensor.shape[1]-1, error_tensor.shape[2], error_tensor.shape[3]])
-                error_tensor_out = []
-                for i in range(np.size(self.optimizer, 0)): # batches
-                    error_tensor_out_ch = []
-                    for j in range(np.size(self.optimizer, 1)): # channels
-                        error_tensor_out_filters = []
-                        for k in range(self.num_kernels): # filters
-                            error_tensor_out_filters.append(convolve(error_tensor[i, k, :, :], self.weights[k, j, :, :],
-                                                          mode='constant'))
-                        error_tensor_out_ch.append(np.sum(error_tensor_out_filters, 0))
-                    error_tensor_out.append(error_tensor_out_ch)
-            else:
-                error_tensor_out = []
-                for i in range(np.size(self.optimizer, 0)):  # batches
-                    error_tensor_out_ch = []
-                    for k in range(self.num_kernels):  # filters
-                        error_tensor_out_ch.append(convolve(error_tensor[i, k, :, :], self.weights[k, :, :],
-                                                                 mode='constant'))
-                    error_tensor_out.append(np.sum(error_tensor_out_ch, 0))
+            self.bias = self.optimizer.calculate_update(self.bias, self.gradient_bias)
+            self.weights = self.optimizer.calculate_update(self.weights, self.gradient_weights)
 
-            self.gradient_weights = []
-            for i in range(np.size(self.optimizer, 0)):  # batches
+        return error_tensor_out
 
-                mid_ind = (self.optimizer.shape[-1] + error_tensor.shape[-1] - 2)//2
-                if len(self.optimizer.shape) == 4:
-                    gd = np.flip(cr(self.optimizer[i, :, :, :][np.newaxis, :, :, :], error_tensor[i, :, :, :][:, np.newaxis, :, :]), 0)[:, :, mid_ind-1:mid_ind+2, mid_ind-1:mid_ind+2]
-                else:
-                    gd = np.flip(cr(self.optimizer[i, :, :][np.newaxis, :, :],
-                                    error_tensor[i, :, :, :]), 0)[:, :, mid_ind - 1:mid_ind + 2]
-                self.gradient_weights.append(gd)
+    def backward_1D(self, error_tensor):
+        batch_size = self.input_tensor.shape[0]
+        width = self.input_tensor.shape[2]
+        stride_y = self.stride_shape[0]
+        num_channels = self.convolution_shape[0]
 
-            self.gradient_bias = []
-            for i in range(np.size(error_tensor, 1)):  # channels
-                  self.gradient_bias.append(np.sum(error_tensor[:, i, :, :]))
+        error_tensor_rshpd = np.zeros((batch_size, self.num_kernels, *self.input_tensor.shape[2:]))
+        error_tensor_rshpd[:, :, ::stride_y] = error_tensor
 
-        return np.array(error_tensor_out)
+        Kernel_rshpd = np.zeros((num_channels, self.num_kernels, self.convolution_shape[-1]))
+
+        for n_c in range(num_channels):
+            for n_k in range(self.num_kernels):
+                Kernel_rshpd[n_c][n_k] = self.weights[n_k][n_c]
+
+        error_tensor_out = np.zeros((batch_size, num_channels, width))
+
+        for n_b in range(batch_size):
+            for n_c in range(num_channels):
+                result = []
+                for n_k in range(self.num_kernels):
+                    result.append(convolve1d(error_tensor_rshpd[n_b][n_k], Kernel_rshpd[n_c][n_k], mode='constant', cval=0))
+                error_tensor_out[n_b][n_c] = np.sum(np.array(result), axis=0)
+
+        self.gradient_bias = np.zeros(self.bias.shape)
+        for n_k in range(self.num_kernels):
+            self.gradient_bias[n_k] = np.sum(error_tensor[:, n_k, :])
+
+        delta_weights = np.zeros_like(self.weights)
+        conv_shape = np.array(self.convolution_shape)-1
+        _,l= np.int32(np.floor(conv_shape/2))
+        _,r = np.int32(np.ceil(conv_shape/2))
+        padded_input_tensor = np.pad(self.input_tensor,((0,0),(0,0),(l,r)))
+
+        for n_b in range(batch_size):
+            for n_k in range(self.num_kernels):
+                result = []
+                for n_c in range(num_channels):
+                    result.append(correlate(padded_input_tensor[n_b][n_c],error_tensor_rshpd[n_b][n_k],mode='valid'))
+                delta_weights[n_k] += np.array(result)
+        self.gradient_weights = delta_weights
+
+        if self.optimizer is not None:
+            self.optimizer.calculate_update(self.bias,self.gradient_bias)
+            self.optimizer.calculate_update(self.weights,self.gradient_weights)
+
+        return error_tensor_out
 
     def initialize(self, weights_initializer, bias_initializer):
-        self.weights = weights_initializer
-        self.bias = bias_initializer
+        weight_shape = (self.num_kernels, * self.convolution_shape)
+        fan_out_shape = self.num_kernels * np.product(self.convolution_shape[1:])
+        fan_in_shape = np.prod(self.convolution_shape)
+        self.weights = weights_initializer.initialize(weight_shape,
+                                                      fan_in_shape, fan_out_shape)
+        self.bias = bias_initializer.initialize(self.num_kernels, 1, self.num_kernels)
 
 
 

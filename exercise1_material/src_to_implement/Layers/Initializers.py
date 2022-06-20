@@ -33,6 +33,6 @@ class He:
         else:
             init_weight_tensor = np.random.randn(weights_shape[0], 1)
         #init_weight_tensor = np.random.randn(weights_shape) * sd
-        return init_weight_tensor
+        return init_weight_tensor * sd
 #
 
