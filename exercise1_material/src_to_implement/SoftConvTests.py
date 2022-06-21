@@ -14,8 +14,8 @@ Links: (if you use pycharm) https://www.jetbrains.com/help/pycharm/debugging-you
 Note that these tests will not detect *all* implementation errors. They may serve as additional ideas on how to debug your code if these tests
 all pass but the unit tests still do not.
 """
-
-from Layers import *
+from Layers import Conv
+#from Layers import *
 import numpy as np
 
 # determines whether difference results are printed to stdout

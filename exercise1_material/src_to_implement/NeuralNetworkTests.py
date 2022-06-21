@@ -10,8 +10,6 @@ import os
 import tabulate
 import argparse
 
-from exercise1_material.src_to_implement.Layers import Initializers
-
 ID = 2  # identifier for dispatcher
 
 class TestFullyConnected2(unittest.TestCase):

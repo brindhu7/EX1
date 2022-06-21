@@ -1,4 +1,4 @@
-from exercise1_material.src_to_implement.Layers.Base import BaseLayer
+from Layers.Base import BaseLayer
 
 class ReLU(BaseLayer):
     def __init__(self):
