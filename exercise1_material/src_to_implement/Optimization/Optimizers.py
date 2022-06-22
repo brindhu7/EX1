@@ -30,7 +30,9 @@ class Adam:
     def calculate_update(self,weight_tensor,gradient_tensor):
         #weighted average for momentum by taking the past gradients
         self.v = self.mu * self.v + (1- self.mu) * gradient_tensor
-        self.r = self.rho * self.r + (1- self.rho ) * np.dot (gradient_tensor,gradient_tensor)
+        #self.r = self.rho * self.r + (1- self.rho ) * np.dot (gradient_tensor,gradient_tensor)
+
+        self.r = self.rho * self.r + ((1 - self.rho) * gradient_tensor)*gradient_tensor
         #removing the bias in the weighted average
         predicted_v = self.v / (1 - np.power(self.mu, self.k))
         predicted_r = self.r / (1. - np.power(self.rho, self.k))
