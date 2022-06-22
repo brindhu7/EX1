@@ -2,6 +2,7 @@ import numpy as np
 from Layers.Base import BaseLayer
 from scipy.signal import correlate2d, correlate
 from scipy.ndimage import convolve1d, convolve
+from copy import deepcopy
 
 class Conv(BaseLayer):
     def __init__(self,stride_shape, convolution_shape, num_kernels):
@@ -17,7 +18,37 @@ class Conv(BaseLayer):
         self.gradient_weights = None
         self.gradient_bias = None
         self.input_tensor = None
-        self.optimizer = None
+        self._optimizer = None
+        self._w_optimizer = None
+        self._b_optimizer = None
+        self._gradient_weights = None
+        self._gradient_bias = None
+
+    @property
+    def optimizer(self):
+        return self._optimizer
+
+    @optimizer.setter
+    def optimizer(self,opt):
+        self._optimizer = opt
+        self._w_optimizer = deepcopy(opt)
+        self._b_optimizer = deepcopy(opt)
+
+    @property
+    def gradient_weights(self):
+        return self._gradient_weights
+
+    @gradient_weights.setter
+    def gradient_weights(self,opt):
+        self._gradient_weights = opt
+
+    @property
+    def gradient_bias(self):
+        return self._gradient_bias
+
+    @gradient_bias.setter
+    def gradient_bias(self,opt):
+        self._gradient_bias = opt
 
     def forward_2D(self, input_tensor):
         batch_size = input_tensor.shape[0]
@@ -118,8 +149,8 @@ class Conv(BaseLayer):
         self.gradient_weights = delta_weights
 
         if self.optimizer is not None:
-            self.bias = self.optimizer.calculate_update(self.bias, self.gradient_bias)
-            self.weights = self.optimizer.calculate_update(self.weights, self.gradient_weights)
+            self.bias = self._b_optimizer.calculate_update(self.bias, self.gradient_bias)
+            self.weights = self._w_optimizer.calculate_update(self.weights, self.gradient_weights)
 
         return error_tensor_out
 
@@ -166,8 +197,8 @@ class Conv(BaseLayer):
         self.gradient_weights = delta_weights
 
         if self.optimizer is not None:
-            self.optimizer.calculate_update(self.bias,self.gradient_bias)
-            self.optimizer.calculate_update(self.weights,self.gradient_weights)
+            self._b_optimizer.calculate_update(self.bias,self.gradient_bias)
+            self._w_optimizer.calculate_update(self.weights,self.gradient_weights)
 
         return error_tensor_out
 
