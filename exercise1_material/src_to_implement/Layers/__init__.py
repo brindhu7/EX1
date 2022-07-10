@@ -1,1 +1,1 @@
-__all__ = ["Flatten", "Pooling", "Conv", "Helpers", "Initializers", "FullyConnected", "ReLU", "SoftMax", "Pooling"]
+__all__ = ["Flatten", "Pooling", "Conv", "Helpers", "Initializers", "FullyConnected", "ReLU", "SoftMax", "Pooling", "Dropout"]

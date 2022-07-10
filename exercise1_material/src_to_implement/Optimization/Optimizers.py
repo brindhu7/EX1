@@ -1,13 +1,26 @@
 import numpy as np
-class Sgd:
+class Optimizer:
+    def __init__(self):
+        pass
+
+    def add_regularizer(self, regularizer):
+        self.regularizer = regularizer
+
+class Sgd(Optimizer):
     def __init__(self,learning_rate):
+        super().__init__()
         self.learning_rate = float(learning_rate)
 
     def calculate_update(self,weight_tensor,gradient_tensor):
         updated_weights = weight_tensor - self.learning_rate * gradient_tensor
+        if self.regularizer:
+            updated_weights -= self.learning_rate * self.regularizer.calculate_gradient(weight_tensor)
+
         return updated_weights
-class SgdWithMomentum:
+
+class SgdWithMomentum(Optimizer):
     def __init__(self,learning_rate,momentum_rate):
+        super().__init__()
         self.learning_rate = learning_rate
         self.momentum_rate = momentum_rate
         self.v = 0
@@ -15,10 +28,13 @@ class SgdWithMomentum:
     def calculate_update(self,weight_tensor,gradient_tensor):
         self.v = ( self.momentum_rate * self.v ) - self.learning_rate * gradient_tensor
         updated_weights = weight_tensor + self.v
+        if self.regularizer:
+            updated_weights -= self.learning_rate * self.regularizer.calculate_gradient(weight_tensor)
         return updated_weights
 
-class Adam:
+class Adam(Optimizer):
     def __init__(self,learning_rate,mu,rho):
+        super().__init__()
         self.learning_rate = learning_rate
         self.mu = mu
         self.rho = rho
@@ -36,10 +52,14 @@ class Adam:
         #removing the bias in the weighted average
         predicted_v = self.v / (1 - np.power(self.mu, self.k))
         predicted_r = self.r / (1. - np.power(self.rho, self.k))
-        weight_tensor = weight_tensor - self.learning_rate * (predicted_v / (np.sqrt(predicted_r) + self.epsilon))
+        updated_weights = weight_tensor - self.learning_rate * (predicted_v / (np.sqrt(predicted_r) + self.epsilon))
         #updating the weights for every iteration
         self.k += 1
-        return weight_tensor
+        if self.regularizer:
+            updated_weights -= self.learning_rate * self.regularizer.calculate_gradient(weight_tensor)
+
+        return updated_weights
+
 
 
 

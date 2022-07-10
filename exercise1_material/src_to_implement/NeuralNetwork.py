@@ -9,6 +9,7 @@ class NeuralNetwork:
         self.loss_layer = None
         self.weights_initializer = weights_initializer
         self.bias_initializer = bias_initializer
+        self.phase = None
 
 
     def forward(self):
