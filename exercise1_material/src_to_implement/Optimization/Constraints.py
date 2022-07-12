@@ -1,4 +1,4 @@
-from Optimization.Optimizers import Optimizer
+from exercise1_material.src_to_implement.Optimization.Optimizers import Optimizer
 import numpy as np
 
 class L1_Regularizer(Optimizer):
