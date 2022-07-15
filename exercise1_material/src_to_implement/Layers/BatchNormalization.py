@@ -19,7 +19,7 @@ class BatchNormalization(BaseLayer):
         self.normalized_input = None
         self._optimizer = None
 
-    def initialize(self):
+    def initialize(self,bias,channels):
         self.bias = np.zeros(self.channels) #bias
         self.weights = np.ones(self.channels) #weights
 
@@ -104,5 +104,6 @@ class BatchNormalization(BaseLayer):
     @optimizer.setter
     def optimizer(self, value):
         self._optimizer = value
+
 
 

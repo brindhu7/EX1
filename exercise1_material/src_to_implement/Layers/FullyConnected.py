@@ -1,5 +1,5 @@
 import numpy as np
-from Layers.Base import BaseLayer
+from exercise1_material.src_to_implement.Layers.Base import BaseLayer
 import sys
 #sys.path.append('C:\\Users\\brind\\PycharmProjects\\EX1\\exercise1_material\\src_to_implement\\Optimization')
 
@@ -16,10 +16,13 @@ class FullyConnected(BaseLayer):
         #initialize the weights
         self.weights = np.random.uniform(0,1,(self.input_size + 1 ,self.output_size))
         self._optimizer=None
+        self.gradient__weights=None
+        self.input_tensor = None
 
 
 
     def forward(self,input_tensor):
+        self.input_tensor = input_tensor
         # appending bias "1" column to the input_tensor
         ones= np.ones((input_tensor.shape[0],1))
         self.input_with_bias = np.append(input_tensor,ones, axis = 1)
