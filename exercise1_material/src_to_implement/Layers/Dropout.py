@@ -11,7 +11,6 @@ class Dropout(BaseLayer):
             x = input_tensor
         else:
             t = np.linspace(0, 1, input_tensor.shape[-1])
-            t[0] = 0.001
 
             t[t > self.probability] = 0
             t[t > 0] = 1
