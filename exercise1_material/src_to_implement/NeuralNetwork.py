@@ -21,7 +21,10 @@ class NeuralNetwork:
         for i in self.layers:
             self.input_tensor = i.forward(self.input_tensor)
         #after iterating through all the layers
-        return self.loss_layer.forward(self.input_tensor, self.label_tensor)
+        loss = self.loss_layer.forward(self.input_tensor, self.label_tensor)
+        if self.Optimizer.regularizer:
+            loss = loss + self.Optimizer.regularizer.norm(self.input_tensor)
+        return loss
 
     def backward(self):
         #pass the error _tensor from loss layer
